@@ -1,0 +1,14 @@
+{
+  "name": "poewikibot",
+  "version": "1.0.0",
+  "description": "PoEWikiBot",
+  "main": "app.js",
+  "authors": {
+    "names": [
+      "Daniel Ford"
+    ]
+  },
+  "dependencies": {
+    "discord.js": "^11.0.0"
+  }
+}
