@@ -1,4 +1,8 @@
-const http = require('http');
+var http = require('http');
+var cheerio = require('cheerio');
+var jsdom = require("jsdom");
+var domtoimage = require('dom-to-image');
+var html2canvas = require('html2canvas');
 const Discord = require("discord.js");
 
 const wikiRegex = new RegExp("\\[\\[([^\\[\\]]*)\\]\\]", "gu");
@@ -32,29 +36,43 @@ client.on("message", (message) => {
 });
 
 function handleItem(name, channel) {
-    let urlItem = name.replace(new RegExp(" ", "g"), "_")
-    let options = {
+    let itemUrlPart = convertToUrlString(name);
+    var options = {
         host: 'pathofexile.gamepedia.com',
-        path: `/${urlItem}`
+        path: `/${itemUrlPart}`,
+        protocol: `http:`
     };
 
     console.log("Firing request")
 
-    var req = http.request(options, function (res) {
-        console.log('STATUS: ' + res.statusCode);
-        console.log('HEADERS: ' + JSON.stringify(res.headers));
+    var request = http.request(options, function (response) {
+        console.log('STATUS: ' + response.statusCode);
+        console.log('HEADERS: ' + JSON.stringify(response.headers));
 
-        res.setEncoding('utf8');
-        let body = "";
+        response.setEncoding('utf8');
+        let body = '';
 
-        res.on('data', function (chunk) {
+        response.on('data', function (chunk) {
             console.log('BODY: ' + chunk);
             body += chunk;
         });
 
-        res.on('end', function () {
-            let output = `http://pathofexile.gamepedia.com/${urlItem}`;
-            channel.sendMessage(output);
+        response.on('end', function () {
+            let output = `<http://pathofexile.gamepedia.com/${itemUrlPart}>`;
+            let img = getImage(body);
+            channel.sendMessage(output, { file: img });
         });
+    }).end();
+}
+
+function getImage(body) {
+    let $ = cheerio.load(body);
+    let node = $('.infobox-page-container').get(0);
+    html2canvas(node).then(function(canvas) {
+        debugger;
     });
+}
+
+function convertToUrlString(name) {
+    return name.replace(new RegExp(" ", "g"), "_");
 }
