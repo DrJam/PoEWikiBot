@@ -22,7 +22,7 @@ client.on("ready", () => {
 
 client.on("message", (message) => {
     if (message.author.id == client.user.id) {
-        //Disabled this check, as it causes it to skip if you post quicly
+        //Disabled this check, as it causes it to not do a check if you post twice in a row.
         //return;
     }
 
@@ -37,7 +37,7 @@ client.on("message", (message) => {
 async function handleItem(name, channel) {
     console.log(name)
     let itemUrlPart = convertToUrlString(name);
-    var url = "https://pathofexile.gamepedia.com/" + itemUrlPart;
+    var url = config.wikiURL + itemUrlPart;
     let initalMessage = "Retrieving details from the Wiki for **" + name + "**"
     var messageId;
     await channel
@@ -81,7 +81,7 @@ async function getImage(url) {
 
     const page = await browser.newPage();
     //Set a tall page so the image isn't covered by popups
-    await page.setViewport({ 'width': 2560, 'height': 2560 })
+    await page.setViewport({ 'width': config.width, 'height': config.height })
 
     //our output
     var output = {
@@ -96,7 +96,7 @@ async function getImage(url) {
         return output;
     }
     try {
-        const area = await page.$('.item-box');
+        const area = await page.$(config.wikiDiv);
         var screenshot = await area.screenshot();
     } catch (e) {
         //console.log(e)
