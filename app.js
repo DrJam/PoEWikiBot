@@ -1,18 +1,15 @@
-var http = require('http');
-var cheerio = require('cheerio');
-var jsdom = require("jsdom");
-var domtoimage = require('dom-to-image');
-var html2canvas = require('html2canvas');
 const Discord = require("discord.js");
-
+const puppeteer = require('puppeteer');
 const wikiRegex = new RegExp("\\[\\[([^\\[\\]]*)\\]\\]", "gu");
 const urlRegex = new RegExp("\\w", "g");
 
 var config = require("./config.json")
+
 var client = new Discord.Client({
     disableEveryone: true,
     disabledEvents: ["TYPING_START"]
 });
+
 
 client.token = config.token;
 
@@ -24,8 +21,10 @@ client.on("ready", () => {
 });
 
 client.on("message", (message) => {
-    if (message.author.id == client.user.id)
-        return;
+    if (message.author.id == client.user.id) {
+        //Disabled this check, as it causes it to skip if you post quicly
+        //return;
+    }
 
     let matches = wikiRegex.exec(message.cleanContent);
     if (matches != null && matches.length > 0) {
@@ -35,44 +34,83 @@ client.on("message", (message) => {
     }
 });
 
-function handleItem(name, channel) {
+async function handleItem(name, channel) {
+    console.log(name)
     let itemUrlPart = convertToUrlString(name);
-    var options = {
-        host: 'pathofexile.gamepedia.com',
-        path: `/${itemUrlPart}`,
-        protocol: `http:`
-    };
+    var url = "https://pathofexile.gamepedia.com/" + itemUrlPart;
+    let initalMessage = "Retrieving details from the Wiki for **" + name + "**"
+    var messageId;
+    await channel
+        .send(initalMessage)
+        .then(message => {
+            console.log(`Sent message: ${message.id}`)
+            messageId = message.id
+        })
 
-    console.log("Firing request")
-
-    var request = http.request(options, function (response) {
-        console.log('STATUS: ' + response.statusCode);
-        console.log('HEADERS: ' + JSON.stringify(response.headers));
-
-        response.setEncoding('utf8');
-        let body = '';
-
-        response.on('data', function (chunk) {
-            console.log('BODY: ' + chunk);
-            body += chunk;
-        });
-
-        response.on('end', function () {
-            let output = `<http://pathofexile.gamepedia.com/${itemUrlPart}>`;
-            let img = getImage(body);
-            channel.sendMessage(output, { file: img });
-        });
-    }).end();
+    await getImage(url)
+        .then((data) => {
+            if (data.success == false) {
+                channel
+                    .fetchMessage(messageId)
+                    .then(message => {
+                        message.edit("Could not get details from the Wiki for **" + name + "**")
+                    })
+                    .catch(console.log)
+            } else {
+                let output = '<' + url + '>';
+                channel
+                    .fetchMessage(messageId)
+                    .then(message => {
+                        message.delete()
+                    })
+                    .catch(console.log)
+                channel.send(output, { file: data.img });
+                console.log('Found in the wiki and sent: ' + url)
+            }
+        })
+        .catch(error => {
+            console.log(error)
+        })
 }
 
-function getImage(body) {
-    let $ = cheerio.load(body);
-    let node = $('.infobox-page-container').get(0);
-    html2canvas(node).then(function(canvas) {
-        debugger;
+async function getImage(url) {
+    const browser = await puppeteer.launch({
+        ignoreHTTPSError: true,
+        headless: true
     });
+
+    const page = await browser.newPage();
+    //Set a tall page so the image isn't covered by popups
+    await page.setViewport({ 'width': 2560, 'height': 2560 })
+
+    //our output
+    var output = {
+        success: false,
+        img: null
+    }
+
+    try {
+        await page.goto(url, { waitUntil: 'networkidle2' });
+    } catch (e) {
+        //console.log(e)
+        return output;
+    }
+    try {
+        const area = await page.$('.item-box');
+        var screenshot = await area.screenshot();
+    } catch (e) {
+        //console.log(e)
+        return output;
+    }
+
+    await browser.close();
+    output.success = true;
+    output.img = screenshot;
+    return output
 }
+
 
 function convertToUrlString(name) {
     return name.replace(new RegExp(" ", "g"), "_");
 }
+
