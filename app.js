@@ -10,11 +10,23 @@ var client = new Discord.Client({
     disabledEvents: ["TYPING_START"]
 });
 
+var browswer
 
 client.token = config.token;
 
 client.login();
 console.log("Logged in");
+
+//Setup our browswer
+(async () => {
+    browser = await puppeteer.launch({
+        ignoreHTTPSError: true,
+        headless: true,
+        handleSIGHUP: true
+    });
+  })();
+
+
 
 client.on("ready", () => {
     console.log(`Ready as ${client.user.username}`)
@@ -57,6 +69,7 @@ async function handleItem(name, channel) {
                     })
                     .catch(console.log)
             } else {
+                //need a way that lets us add an attachment message, currently I can only edit text to it
                 let output = '<' + url + '>';
                 channel
                     .fetchMessage(messageId)
@@ -74,10 +87,7 @@ async function handleItem(name, channel) {
 }
 
 async function getImage(url) {
-    const browser = await puppeteer.launch({
-        ignoreHTTPSError: true,
-        headless: true
-    });
+
 
     const page = await browser.newPage();
     //Set a tall page so the image isn't covered by popups
@@ -93,19 +103,20 @@ async function getImage(url) {
         await page.goto(url, { waitUntil: 'networkidle2' });
     } catch (e) {
         //console.log(e)
-        return output;
+        //return output;
     }
     try {
         const area = await page.$(config.wikiDiv);
         var screenshot = await area.screenshot();
+        output.success = true;
+        output.img = screenshot;
     } catch (e) {
         //console.log(e)
-        return output;
+        //return output;
     }
 
-    await browser.close();
-    output.success = true;
-    output.img = screenshot;
+    page.close()
+
     return output
 }
 
