@@ -23,4 +23,4 @@ The **wikiDiv** is the CSS selector that the bot will screenshot.
 
 syntax: **[[ItemName]]**
 
-![The Scourge](/screenshots/The**Scourge.png?raw=true "The Scourge")
+![The Scourge](/screenshots/The_Scourge.png?raw=true "The Scourge")
