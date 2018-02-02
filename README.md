@@ -7,8 +7,6 @@ This requires Node.js version 7.6+ as it uses async/await calls.
 
 ## Configuration
 
-Rename **template.config.json** to **config.json**.
-
 Update the token value in **config.json** with your Discord Bot token.
 
 Start the bot with  **node app.js**
@@ -18,6 +16,34 @@ Start the bot with  **node app.js**
 You should be able to edit the **wikiURL** and **wikiDiv** settings in the **config.json** to a different Wiki.
 
 The **wikiDiv** is the CSS selector that the bot will screenshot.
+
+## Known issues
+
+### Posting a message
+
+The Bot cannot edit the originally searching message it posts with an attachment, so when it finds a valid Image, it will delete the original post and make anew one with the image and Wiki link.  If the bot cannot find a valid Image, it will edit the original message instead.
+
+### Performance
+
+The Path of Exile Wiki is quite slow. There is an option set in the config.json file to disable Javascript. This gives 100% increased performance (or thereabouts).
+
+## Settings
+
+Settings available in the **config.json** are:
+
+Settings | Default Value
+---------|--------------
+token | <None>
+wikiURL | "https://pathofexile.gamepedia.com/"
+wikiDiv | ".item-box"
+width  | 2500,
+height | 2500,
+enableJavascript | false
+
+
+
+
+
 
 ## Usage
 
