@@ -14,6 +14,8 @@ This requires Node.js version 7.6+ at a minimum, as it uses async/await calls.
 
 Update the token value in **config.json** with your Discord Bot token.
 
+Run **npm install**
+
 Start the bot with  **node app.js**
 
 ## Support for other wikis
