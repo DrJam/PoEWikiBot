@@ -1,6 +1,6 @@
 # PoEWikiBot
 
-A Discord bot for looking up Path of Exile items on the Wiki.  It will post an image of the Item information from the wiki.
+A Discord bot for looking up Path of Exile items on the Wiki.  It will post an image of the Item information from the wiki if it's available. Otherwise it will post a direct link to the Wiki Page.
 
 ## How it works
 
@@ -36,7 +36,8 @@ Settings | Default Value
 ---------|--------------
 token |
 wikiURL | "https://pathofexile.gamepedia.com/"
-wikiDiv | ".item-box"
+wikiDiv | ".infobox-page-container > .item-box"
+wikiInvalidPage | ".noarticletext"
 width  | 2500
 height | 2500
 enableJavascript | false

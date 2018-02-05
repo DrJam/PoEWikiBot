@@ -59,8 +59,8 @@ async function handleItem(name, channel) {
         });
 
     await getImage(url)
-        .then((img) => {
-            if (img == false) {
+        .then((result) => {
+            if (result.success == false) {
                 channel
                     .fetchMessage(messageId)
                     .then(message => {
@@ -70,16 +70,26 @@ async function handleItem(name, channel) {
             } else {
                 //need a way that lets us add an attachment message, currently I can only edit text to it
                 let output = '<' + url + '>';
-                channel
-                    .fetchMessage(messageId)
-                    .then(message => {
-                        message.delete();
-                    })
-                    .catch(console.log);
-                channel.send(output, { file: img });
+                //if no screenshot, just edit the original message
+                if (result.screenshot == false) {
+                    channel
+                        .fetchMessage(messageId)
+                        .then(message => {
+                            message.edit(output);
+                        })
+                        .catch(console.log);
+                } else {
+                    //otherwise delete the message and create a new one with the screenshot
+                    channel
+                        .fetchMessage(messageId)
+                        .then(message => {
+                            message.delete();
+                        })
+                        .catch(console.log);
+                    channel.send(output, { file: result.screenshot });
+                }
                 console.log('Found in the wiki and sent: ' + url);
             }
-
         })
         .catch(error => {
             console.log(error);
@@ -91,29 +101,50 @@ async function getImage(url) {
     const page = await browser.newPage();
     //Disabling Javascript adds 100% increased performance
     await page.setJavaScriptEnabled(config.enableJavascript)
-    var screenshot = false;
+    var output = {
+        screenshot: false,
+        success: false
+    }
+
     //Set a tall page so the image isn't covered by popups
     await page.setViewport({ 'width': config.width, 'height': config.height });
 
     try {
+        //played around with a few different waitUntils.  This one seemed the quickest.
+        //If you don't disable Javascript on the PoE Wiki site, removing this parameter makes it hang
         await page.goto(url, { waitUntil: 'networkidle2' });
     } catch (e) {
         //console.log(e)
     }
 
-    try {
-        const area = await page.$(config.wikiDiv);
-        screenshot = await area.screenshot();
-    } catch (e) {
-        //console.log(e)
+    var invalidPage = await page.$(config.wikiInvalidPage);
+    //if we have a invalid page, lets exit
+    if (invalidPage != null) {
+        return output;
     }
+
+    //if we have a div for the item, screenshot it.
+    //If not, just return the page without the screenshot
+    const div = await page.$(config.wikiDiv);
+    if (div != null) {
+        try {
+            output.screenshot = await div.screenshot();
+            output.success = true;
+        } catch (error) {
+            output.success = true;
+        }
+    } else {
+        output.success = true;
+    }
+
     page.close();
     console.timeEnd('getPage')
-    return screenshot;
+    return output;
 
 }
 
 function convertToUrlString(name) {
     return name.replace(new RegExp(" ", "g"), "_");
 }
+
 

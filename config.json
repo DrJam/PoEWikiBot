@@ -1,7 +1,8 @@
 {
     "token": "",
     "wikiURL" : "https://pathofexile.gamepedia.com/",
-    "wikiDiv" : ".item-box",
+    "wikiDiv" : ".infobox-page-container > .item-box",
+    "wikiInvalidPage" : ".noarticletext",
     "width" : 2500,
     "height" : 2500,
     "enableJavascript" : false
