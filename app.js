@@ -45,7 +45,7 @@ client.on("message", (message) => {
         let matches = wikiRegex.exec(message.cleanContent);
         if (matches != null && matches.length > 0) {
             for (let i = 1; i < matches.length; i++) {
-                handleItem(toTitleCase(matches[i]), message.channel, server);
+                handleItem(titleCase(matches[i]), message.channel, server);
             }
         }
     } catch (error) {
@@ -168,7 +168,16 @@ function convertToUrlString(name) {
     return name.replace(new RegExp(" ", "g"), "_");
 }
 
-function toTitleCase(str)
-{
-    return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
-}
+function titleCase(str) {
+    let excludedWords = ["of", "and", "the", "to", "at", "for"];
+    let words = str.split(" ");
+    for (var i in  words)
+    {
+        if ((i == 0) || !(excludedWords.includes(words[i].toLowerCase()))) {
+            words[i] = words[i][0].toUpperCase()+words[i].slice(1,words[i].length);
+        } else {
+            continue;
+        }
+    }
+    return words.join(" ");
+};
