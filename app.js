@@ -45,7 +45,7 @@ client.on("message", (message) => {
         let matches = wikiRegex.exec(message.cleanContent);
         if (matches != null && matches.length > 0) {
             for (let i = 1; i < matches.length; i++) {
-                handleItem(matches[i], message.channel, server);
+                handleItem(toTitleCase(matches[i]), message.channel, server);
             }
         }
     } catch (error) {
@@ -168,4 +168,7 @@ function convertToUrlString(name) {
     return name.replace(new RegExp(" ", "g"), "_");
 }
 
-
+function toTitleCase(str)
+{
+    return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+}
