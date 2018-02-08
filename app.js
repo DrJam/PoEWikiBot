@@ -144,7 +144,7 @@ async function getImage(url, server) {
     try {
         //played around with a few different waitUntils.  This one seemed the quickest.
         //If you don't disable Javascript on the PoE Wiki site, removing this parameter makes it hang
-        await page.goto(url, { waitUntil: 'networkidle2' });
+        await page.goto(url, { waitUntil: 'load' });
     } catch (error) {
         errorLog.error(`"${error.message}" "${server}" "${url}"`);
     }
@@ -152,6 +152,17 @@ async function getImage(url, server) {
     var invalidPage = await page.$(config.wikiInvalidPage);
     //if we have a invalid page, lets exit
     if (invalidPage != null) {
+        return output;
+    }
+
+    var infoBox = await page.$('.infocard');
+    if (infoBox != null) {
+        try {
+            output.screenshot = await infoBox.screenshot();
+            output.success = true;
+        } catch (error) {
+            output.success = true;
+        }
         return output;
     }
 
