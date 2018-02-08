@@ -3,8 +3,19 @@ const puppeteer = require('puppeteer');
 const wikiRegex = new RegExp("\\[\\[([^\\[\\]]*)\\]\\]", "gu");
 const urlRegex = new RegExp("\\w", "g");
 
-const log = require('simple-node-logger').createSimpleFileLogger('./logs/requests.log');
-const errorLog = require('simple-node-logger').createSimpleFileLogger('./logs/error.log');
+const SimpleNodeLogger = require('simple-node-logger')
+
+
+errorLog = SimpleNodeLogger.createSimpleLogger({
+    logFilePath: './logs/error.log',
+    timestampFormat: 'YYYY-MM-DD HH:mm:ss'
+});
+
+log = SimpleNodeLogger.createSimpleLogger({
+    logFilePath: './logs/requests.log',
+    timestampFormat: 'YYYY-MM-DD HH:mm:ss'
+});
+
 errorLog.setLevel('error');
 
 var config = require("./config.json");
@@ -50,12 +61,11 @@ client.on("message", (message) => {
             }
         }
     } catch (error) {
-        errorLog.error(new Date().toJSON(), ' ', error.message);
+        errorLog.error(`"${error.message}"`);
     }
 });
 
 async function handleItem(name, channel, server) {
-    console.log(name)
     let itemUrlPart = convertToUrlString(name);
     var url = config.wikiURL + itemUrlPart;
     let initalMessage = "Retrieving details from the Wiki for **" + name + "**";
@@ -68,7 +78,7 @@ async function handleItem(name, channel, server) {
         })
         .catch(error => {
             //console.log(error.message)
-            errorLog.error(new Date().toJSON(), ' ', error.message, ' - ', server, ' - ', name);
+            errorLog.error(`"${error.message}" "${server}" "${name}"`);
         })
 
     if (messageId != null) {
@@ -81,10 +91,10 @@ async function handleItem(name, channel, server) {
                             message.edit("Could not get details from the Wiki for **" + name + "**");
                         })
                         .catch(error => {
-                            errorLog.error(new Date().toJSON(), ' Could not edit message ', messageId, ' - ', server, ' - ', name);
+                            errorLog.error(`"${error.message}" "${server}" "${name}"`);
                         })
                 } else {
-                    log.info(new Date().toJSON(), ' ', server, ' - ', name, ' - ', url);
+                    log.info(`"${server}" "${name}" "${url}"`);
                     //need a way that lets us add an attachment message, currently I can only edit text to it
                     let output = '<' + url + '>';
                     //if no screenshot, just edit the original message
@@ -95,7 +105,7 @@ async function handleItem(name, channel, server) {
                                 message.edit(output);
                             })
                             .catch(error => {
-                                errorLog.error(new Date().toJSON(), ' Could not edit message ', messageId, ' - ', server, ' - ', name);
+                                errorLog.error(`"Could not edit message ${messageId}" "${server}" "${name}"`);
                             })
                     } else {
                         //otherwise delete the message and create a new one with the screenshot
@@ -105,7 +115,7 @@ async function handleItem(name, channel, server) {
                                 message.delete();
                             })
                             .catch(error => {
-                                errorLog.error(new Date().toJSON(), ' Could not delete message ', messageId, ' - ', server, ' - ', name);
+                                errorLog.error(`"Could not delete message ${messageId}" "${server}" "${name}"`);
                             })
                         channel.send(output, { file: result.screenshot });
                     }
@@ -113,13 +123,13 @@ async function handleItem(name, channel, server) {
                 }
             })
             .catch(error => {
-                errorLog.error(new Date().toJSON(), ' ', error.message, ' - ', server, ' - ', name);
+                errorLog.error(`"${error.message}" "${server}" "${name}"`);
             })
     }
 }
 
 async function getImage(url, server) {
-    console.time('getPage')
+    //console.time('getPage')
     const page = await browser.newPage();
     //Disabling Javascript adds 100% increased performance
     await page.setJavaScriptEnabled(config.enableJavascript)
@@ -136,7 +146,7 @@ async function getImage(url, server) {
         //If you don't disable Javascript on the PoE Wiki site, removing this parameter makes it hang
         await page.goto(url, { waitUntil: 'networkidle2' });
     } catch (error) {
-        errorLog.error(new Date().toJSON(), ' ', error.message, ' - ', server, ' - ', url);
+        errorLog.error(`"${error.message}" "${server}" "${url}"`);
     }
 
     var invalidPage = await page.$(config.wikiInvalidPage);
@@ -160,7 +170,7 @@ async function getImage(url, server) {
     }
 
     await page.close();
-    console.timeEnd('getPage')
+    //console.timeEnd('getPage')
     return output;
 
 }
@@ -172,10 +182,9 @@ function convertToUrlString(name) {
 function titleCase(str) {
     let excludedWords = ["of", "and", "the", "to", "at", "for"];
     let words = str.split(" ");
-    for (var i in  words)
-    {
+    for (var i in words) {
         if ((i == 0) || !(excludedWords.includes(words[i].toLowerCase()))) {
-            words[i] = words[i][0].toUpperCase()+words[i].slice(1,words[i].length);
+            words[i] = words[i][0].toUpperCase() + words[i].slice(1, words[i].length);
         } else {
             continue;
         }
