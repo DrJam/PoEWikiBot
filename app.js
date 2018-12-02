@@ -68,24 +68,18 @@ async function handleItem(itemName, message) {
 
 	getImage(url, guildName).then(result => {
 		let outputString = '<' + url + '>';
+		
 		if (!result.success) {
-			channel.fetchMessage(messageId).then(message => {
-				message.edit("Could not get details from the Wiki for **" + itemName + "**");
-			}).catch(error => {
-				errorLog.error(`"${error.message}" "${guildName}" "${itemName}"`);
-			})
+			editMessage(channel, messageId, `Could not get details from the Wiki for **${itemName}**`);
 			return;
 		}
 
+		//log success
 		log.info(`"${guildName}" "${itemName}" "${url}"`);
 
 		//if no screenshot, just edit the original message
 		if (!result.screenshot) {
-			channel.fetchMessage(messageId).then(message => {
-				message.edit(outputString);
-			}).catch(() => {
-				errorLog.error(`"Could not edit message ${messageId}" "${guildName}" "${itemName}"`);
-			})
+			editMessage(channel, messageId, outputString)
 			return;
 		}
 
@@ -93,10 +87,18 @@ async function handleItem(itemName, message) {
 		channel.fetchMessage(messageId).then(message => {
 			message.delete();
 		}).catch(() => {
-			errorLog.error(`"Could not delete message ${messageId}" "${guildName}" "${itemName}"`);
-		})
+			errorLog.error(`"Could not delete message ${messageId}" "${guildName}" "${outputString}"`);
+		});
 		channel.send(outputString, { file: result.screenshot });
 	})
+}
+
+function editMessage(channel, messageId, content) {
+	channel.fetchMessage(messageId).then(message => {
+		message.edit(content);
+	}).catch(() => {
+		errorLog.error(`"Could not edit message ${messageId}" "${channel.guild.name}" "${content}"`);
+	});
 }
 
 async function getImage(url, guildName) {
@@ -107,7 +109,7 @@ async function getImage(url, guildName) {
 	let output = {
 		screenshot: false,
 		success: false
-	}
+	};
 
 	//Set a tall page so the image isn't covered by popups
 	await page.setViewport({ 'width': config.width, 'height': config.height });
@@ -121,14 +123,13 @@ async function getImage(url, guildName) {
 		return;
 	}
 
-	let invalidPage = await page.$(config.wikiInvalidPage);
-	if (invalidPage != null) {
-		console.log("invalid page", url);
+	const invalidPage = await page.$(config.wikiInvalidPage);
+	if (invalidPage !== null) {
 		return output;
 	}
 
 	output.success = true;
-	let infoBox = await page.$('.infocard');
+	const infoBox = await page.$('.infocard');
 
 	//if we have a div for the item, screenshot it.
 	if (infoBox !== null) {
@@ -144,7 +145,6 @@ async function getImage(url, guildName) {
 
 	await page.close();
 	return output;
-
 }
 
 function convertToUrlString(name) {
