@@ -57,4 +57,4 @@ syntax: **[[ItemName]]**
 
 ## Acknowledgements
 
-This bot was forked from https://github.com/DrJam/PoEWikiBot, which I found while looking for a bot with this functionality.  I couldn't get his to work, but I reused parts of his code in this solution.
+Although I originally created this bot (in a non-functioning state), credit must go to https://github.com/daleroy1/PoEWikiBot who put in a lot of work making it work for its original intention, and sharing it with the PoE community
