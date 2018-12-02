@@ -85,6 +85,10 @@ async function handleItem(itemName, message) {
 		//log success
 		log.info(`"${guildName}" "${itemName}" "${url}"`);
 
+		if (result.textblock) {
+			outputString += `\n${result.textblock}`;
+		}
+
 		//if no screenshot, just edit the original message
 		if (!result.screenshot) {
 			editMessage(channel, messageId, outputString)
@@ -130,26 +134,47 @@ async function getImage(url, guildName) {
 		errorLog.error(`"${error.message}" "${guildName}" "${url}"`);
 		return;
 	}
-	
-	const invalidPage = await page.$(config.wikiInvalidPage);
+
+	const invalidPage = await page.$(config.wikiInvalidPageSelector);
 	if (invalidPage !== null) {
 		return output;
 	}
 
 	output.success = true;
-	const infoBox = await page.$(config.wikiInfoDiv);
 
-	//if we have a div for the item, screenshot it.
-	if (infoBox !== null) {
+	//try and get the first paragraph of text
+	var paragraphs = await page.$(config.wikiParagraphsSelector);
+	//can't get these two strings out due to scope, not sure how to
+	if (await paragraphs.$(config.wikiInfoboxPageContainerSelector)) 
+		output.textblock = await page.evaluate(() => document.querySelector('#mw-content-text > .mw-parser-output > p:nth-of-type(2)').innerText);
+		//second paragraph because first contains item info box
+	else
+		output.textblock = await page.evaluate(() => document.querySelector('#mw-content-text > .mw-parser-output > p:nth-of-type(1)').innerText);
+		//first paragraph
+
+	//remove newlines
+	output.textblock = output.textblock.replace(/[\n\r]/g, '');
+
+	const infoBox = await page.$(config.wikiInfoCardSelector);
+	//if we have a div for the page, screenshot it.
+	if (infoBox) {
 		output.screenshot = await infoBox.screenshot();
 		return output;
 	}
 
-	//If not, just return the page without the screenshot
-	const div = await page.$(config.wikiDiv);
-	if (div == null) return output;
+	const itemBox = await page.$(config.wikiItemBoxSelector);
+	//try and get the alternative box for items and div cards
+	if (itemBox) {
+		output.screenshot = await itemBox.screenshot();
+		return output;
+	}
 
-	output.screenshot = await div.screenshot();
+	const wikiTable = await page.$(config.wikiTableSelector);
+	//try and get table if its the first child in body
+	if (wikiTable) {
+		output.screenshot = await wikiTable.screenshot();
+		return output;
+	}
 
 	await page.close();
 	return output;
