@@ -3,14 +3,13 @@ const puppeteer = require('puppeteer');
 const SimpleNodeLogger = require('simple-node-logger')
 
 const config = require("./config.json");
-const wikiRegex = /\[\[([^\[\]]*)\]\]/gu;
-const urlRegex = /\w/g;
+const wikiRegex = /\[\[([^\[\]]*)\]\]|\[([^\[\]]*)\]/gu;
 
-var log = SimpleNodeLogger.createSimpleLogger({
+let log = SimpleNodeLogger.createSimpleLogger({
 	logFilePath: './logs/requests.log',
 	timestampFormat: 'YYYY-MM-DD HH:mm:ss'
 });
-var errorLog = SimpleNodeLogger.createSimpleLogger({
+let errorLog = SimpleNodeLogger.createSimpleLogger({
 	logFilePath: './logs/error.log',
 	timestampFormat: 'YYYY-MM-DD HH:mm:ss'
 });
