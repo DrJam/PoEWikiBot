@@ -25,7 +25,7 @@ errorLog.setLevel('error');
 	});
 })();
 
-var client = new Discord.Client({
+let client = new Discord.Client({
 	disableEveryone: true,
 	disabledEvents: ["TYPING_START"]
 });
@@ -40,88 +40,71 @@ client.on("ready", () => {
 
 client.on("message", (message) => {
 	if (message.author.bot) return;
-	try {
-		const server = message.guild.name;
-		let matches = wikiRegex.exec(message.cleanContent);
-		while (matches) {
-			let target = titleCase(matches[1]);
-			handleItem(target, message.channel, server);
-			matches = wikiRegex.exec(message.cleanContent);
-		}
-	} catch (error) {
-		errorLog.error(`"${error.message}"`);
+	let matches = wikiRegex.exec(message.cleanContent);
+	while (matches) {
+		let target = titleCase(matches[1] || matches[2]);
+		handleItem(target, message);
+		matches = wikiRegex.exec(message.cleanContent);
 	}
 });
 
-async function handleItem(name, channel, server) {
-	let itemUrlPart = convertToUrlString(name);
-	var url = config.wikiURL + itemUrlPart;
-	let initalMessage = "Retrieving details from the Wiki for **" + name + "**";
-	var messageId;
-	await channel
-		.send(initalMessage)
-		.then(message => {
-			//console.log(`Sent message: ${message.id} ${initialMessage}`);
-			messageId = message.id;
-		})
+async function handleItem(itemName, message) {
+	var channel = message.channel;
+	var guildName = message.guild.name;
+
+	let itemUrlPart = convertToUrlString(itemName);
+	let url = config.wikiURL + itemUrlPart;
+
+	let initalMessage = "Retrieving details from the Wiki for **" + itemName + "**";
+
+	let messageId;
+	await channel.send(initalMessage)
+		.then(message => messageId = message.id)
 		.catch(error => {
-			//console.log(error.message)
-			errorLog.error(`"${error.message}" "${server}" "${name}"`);
+			errorLog.error(`"${error.message}" "${guildName}" "${itemName}"`);
 		})
 
-	if (messageId != null) {
-		await getImage(url, server)
-			.then((result) => {
-				if (result.success == false) {
-					channel
-						.fetchMessage(messageId)
-						.then(message => {
-							message.edit("Could not get details from the Wiki for **" + name + "**");
-						})
-						.catch(error => {
-							errorLog.error(`"${error.message}" "${server}" "${name}"`);
-						})
-				} else {
-					log.info(`"${server}" "${name}" "${url}"`);
-					//need a way that lets us add an attachment message, currently I can only edit text to it
-					let output = '<' + url + '>';
-					//if no screenshot, just edit the original message
-					if (result.screenshot == false) {
-						channel
-							.fetchMessage(messageId)
-							.then(message => {
-								message.edit(output);
-							})
-							.catch(error => {
-								errorLog.error(`"Could not edit message ${messageId}" "${server}" "${name}"`);
-							})
-					} else {
-						//otherwise delete the message and create a new one with the screenshot
-						channel
-							.fetchMessage(messageId)
-							.then(message => {
-								message.delete();
-							})
-							.catch(error => {
-								errorLog.error(`"Could not delete message ${messageId}" "${server}" "${name}"`);
-							})
-						channel.send(output, { file: result.screenshot });
-					}
-					console.log('Found in the wiki and sent: ' + url);
-				}
+	if (messageId == null) return;
+
+	getImage(url, guildName).then(result => {
+		let outputString = '<' + url + '>';
+		if (!result.success) {
+			channel.fetchMessage(messageId).then(message => {
+				message.edit("Could not get details from the Wiki for **" + itemName + "**");
+			}).catch(error => {
+				errorLog.error(`"${error.message}" "${guildName}" "${itemName}"`);
 			})
-			.catch(error => {
-				errorLog.error(`"${error.message}" "${server}" "${name}"`);
+			return;
+		}
+
+		log.info(`"${guildName}" "${itemName}" "${url}"`);
+
+		//if no screenshot, just edit the original message
+		if (!result.screenshot) {
+			channel.fetchMessage(messageId).then(message => {
+				message.edit(outputString);
+			}).catch(() => {
+				errorLog.error(`"Could not edit message ${messageId}" "${guildName}" "${itemName}"`);
 			})
-	}
+			return;
+		}
+
+		//otherwise delete the message and create a new one with the screenshot
+		channel.fetchMessage(messageId).then(message => {
+			message.delete();
+		}).catch(() => {
+			errorLog.error(`"Could not delete message ${messageId}" "${guildName}" "${itemName}"`);
+		})
+		channel.send(outputString, { file: result.screenshot });
+	})
 }
 
-async function getImage(url, server) {
-	//console.time('getPage')
+async function getImage(url, guildName) {
 	const page = await browser.newPage();
+
 	//Disabling Javascript adds 100% increased performance
 	await page.setJavaScriptEnabled(config.enableJavascript)
-	var output = {
+	let output = {
 		screenshot: false,
 		success: false
 	}
@@ -134,42 +117,32 @@ async function getImage(url, server) {
 		//If you don't disable Javascript on the PoE Wiki site, removing this parameter makes it hang
 		await page.goto(url, { waitUntil: 'load' });
 	} catch (error) {
-		errorLog.error(`"${error.message}" "${server}" "${url}"`);
+		errorLog.error(`"${error.message}" "${guildName}" "${url}"`);
+		return;
 	}
 
-	var invalidPage = await page.$(config.wikiInvalidPage);
-	//if we have a invalid page, lets exit
+	let invalidPage = await page.$(config.wikiInvalidPage);
 	if (invalidPage != null) {
+		console.log("invalid page", url);
 		return output;
 	}
 
-	var infoBox = await page.$('.infocard');
-	if (infoBox != null) {
-		try {
-			output.screenshot = await infoBox.screenshot();
-			output.success = true;
-		} catch (error) {
-			output.success = true;
-		}
-		return output;
-	}
+	output.success = true;
+	let infoBox = await page.$('.infocard');
 
 	//if we have a div for the item, screenshot it.
-	//If not, just return the page without the screenshot
-	const div = await page.$(config.wikiDiv);
-	if (div != null) {
-		try {
-			output.screenshot = await div.screenshot();
-			output.success = true;
-		} catch (error) {
-			output.success = true;
-		}
-	} else {
-		output.success = true;
+	if (infoBox !== null) {
+		output.screenshot = await infoBox.screenshot();
+		return output;
 	}
 
+	//If not, just return the page without the screenshot
+	const div = await page.$(config.wikiDiv);
+	if (div == null) return output;
+
+	output.screenshot = await div.screenshot();
+
 	await page.close();
-	//console.timeEnd('getPage')
 	return output;
 
 }
