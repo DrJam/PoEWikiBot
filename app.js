@@ -157,7 +157,7 @@ function titleCase(str) {
 	let words = str.split(" ");
 
 	words.forEach((word, index) => {
-		if (index > 0 && excludedWords.includes())
+		if (index > 0 && excludedWords.includes(word))
 			return;
 
 		words[index] = word.charAt(0).toUpperCase() + word.substr(1);
