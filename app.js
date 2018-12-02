@@ -68,9 +68,17 @@ async function handleItem(itemName, message) {
 
 	getImage(url, guildName).then(result => {
 		let outputString = '<' + url + '>';
-		
+
 		if (!result.success) {
 			editMessage(channel, messageId, `Could not get details from the Wiki for **${itemName}**`);
+			setTimeout(function () {
+				channel.fetchMessage(messageId).then(message => {
+					message.delete();
+				}).catch(() => {
+					errorLog.error(`"Could not delete message ${messageId}" "${guildName}" "${outputString}"`);
+				});
+			}, 2000)
+			log.error(`"${guildName}" "${itemName}" "${url}" "INVALID PAGE"`);
 			return;
 		}
 
@@ -122,7 +130,7 @@ async function getImage(url, guildName) {
 		errorLog.error(`"${error.message}" "${guildName}" "${url}"`);
 		return;
 	}
-
+	
 	const invalidPage = await page.$(config.wikiInvalidPage);
 	if (invalidPage !== null) {
 		return output;
