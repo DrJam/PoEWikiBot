@@ -40,10 +40,7 @@ client.on("ready", () => {
 });
 
 client.on("message", (message) => {
-	if (message.author.id == client.user.id) {
-		//Disabled this check, as it causes it to not do a check if you post twice in a row.
-		return;
-	}
+	if (message.author.bot) return;
 	try {
 		const server = message.guild.name;
 		let matches = wikiRegex.exec(message.cleanContent);
