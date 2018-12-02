@@ -137,7 +137,7 @@ async function getImage(url, guildName) {
 	}
 
 	output.success = true;
-	const infoBox = await page.$('.infocard');
+	const infoBox = await page.$(config.wikiInfoDiv);
 
 	//if we have a div for the item, screenshot it.
 	if (infoBox !== null) {
