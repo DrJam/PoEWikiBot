@@ -181,13 +181,15 @@ function convertToUrlString(name) {
 
 function titleCase(str) {
 	let excludedWords = ["of", "and", "the", "to", "at", "for"];
+	str = str.toLowerCase();
 	let words = str.split(" ");
-	for (var i in words) {
-		if ((i == 0) || !(excludedWords.includes(words[i].toLowerCase()))) {
-			words[i] = words[i][0].toUpperCase() + words[i].slice(1, words[i].length);
-		} else {
-			continue;
-		}
-	}
+
+	words.forEach((word, index) => {
+		if (index > 0 && excludedWords.includes())
+			return;
+
+		words[index] = word.charAt(0).toUpperCase() + word.substr(1);
+	})
+
 	return words.join(" ");
 };
