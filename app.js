@@ -55,10 +55,10 @@ async function handleItem(itemName, message) {
 	let itemUrlPart = convertToUrlString(itemName);
 	let url = config.wikiURL + itemUrlPart;
 
-	let initalMessage = "Retrieving details from the Wiki for **" + itemName + "**";
+	let initialMessage = "Retrieving details from the Wiki for **" + itemName + "**";
 
 	let messageId;
-	await channel.send(initalMessage)
+	await channel.send(initialMessage)
 		.then(message => messageId = message.id)
 		.catch(error => {
 			errorLog.error(`"${error.message}" "${guildName}" "${itemName}"`);
