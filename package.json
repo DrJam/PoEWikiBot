@@ -9,6 +9,8 @@
     ]
   },
   "dependencies": {
-    "discord.js": "^11.0.0"
+    "discord.js": "^11.0.0",
+    "puppeteer": "^1.0.0",
+    "simple-node-logger": "^0.93.37"
   }
 }
