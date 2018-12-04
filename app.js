@@ -15,16 +15,6 @@ let errorLog = SimpleNodeLogger.createSimpleLogger({
 });
 errorLog.setLevel('error');
 
-//Setup our browser
-(async () => {
-	browser = await puppeteer.launch({
-		ignoreHTTPSError: true,
-		headless: true,
-		handleSIGHUP: true,
-		args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-	});
-})();
-
 let client = new Discord.Client({
 	disableEveryone: true,
 	disabledEvents: ["TYPING_START"]
@@ -110,7 +100,7 @@ async function handleItem(itemName, message) {
 			errorLog.error(`"Could not delete message ${messageId}" "${guildName}" "${outputString}"`);
 		});
 		channel.send(outputString, { file: result.screenshot });
-	}).catch(reason => {
+	}).catch((reason) => {
 		errorLog.error(`"GetImage Failed" "${guildName}" "${reason}"`);
 		channel.fetchMessage(messageId).then(message => {
 			message.delete();
@@ -129,17 +119,20 @@ function editMessage(channel, messageId, content) {
 }
 
 async function getImage(url, guildName) {
-	const page = await browser.newPage();
-
-	//Disabling Javascript adds 100% increased performance
-	await page.setJavaScriptEnabled(config.enableJavascript)
 	let output = {
 		screenshot: false,
 		success: false
 	};
 
-	//Set a tall page so the image isn't covered by popups
-	await page.setViewport({ 'width': config.width, 'height': config.height });
+	const browser = await puppeteer.launch({
+		ignoreHTTPSError: true,
+		headless: true,
+		handleSIGHUP: true,
+		args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+	});
+	const page = await browser.newPage();
+	await page.setJavaScriptEnabled(config.enableJavascript) //Disabling Javascript adds 100% increased performance
+	await page.setViewport({ 'width': config.width, 'height': config.height }); //Set a tall page so the image isn't covered by popups
 
 	//played around with a few different waitUntils.  This one seemed the quickest.
 	//If you don't disable Javascript on the PoE Wiki site, removing this parameter makes it hang
@@ -147,50 +140,44 @@ async function getImage(url, guildName) {
 		await page.goto(url, { waitUntil: 'load' });
 	} catch (error) {
 		errorLog.error(`"${error.message}" "${guildName}" "${url}"`);
-		return;
+		return output;
 	}
 
 	const invalidPage = await page.$(config.wikiInvalidPageSelector);
-	if (invalidPage && invalidPage !== null)
-		return output;
+	if (invalidPage && invalidPage !== null) return output;
 
 	output.success = true;
 
-	//try and get the first paragraph of text
-	var paragraphs = await page.$(config.wikiParagraphsSelector);
-	//can't get these two strings out due to scope, not sure how to
-	if (await paragraphs.$(config.wikiInfoboxPageContainerSelector))
-		output.textblock = await page.evaluate(() => document.querySelector('#mw-content-text > .mw-parser-output > p:nth-of-type(2)').innerText);
-	//second paragraph because first contains item info box
-	else
-		output.textblock = await page.evaluate(() => document.querySelector('#mw-content-text > .mw-parser-output > p:nth-of-type(1)').innerText);
-	//first paragraph
+    var paragraphs = await page.$(config.wikiParagraphsSelector);
+    if (await paragraphs.$(config.wikiInfoboxPageContainerSelector))
+        output.textblock = await page.evaluate(() => document.querySelector('#mw-content-text > .mw-parser-output > p:nth-of-type(2)').innerText);
+    else
+        output.textblock = await page.evaluate(() => document.querySelector('#mw-content-text > .mw-parser-output > p:nth-of-type(1)').innerText);
 
 	//remove newlines
 	output.textblock = output.textblock.replace(/[\n\r]/g, '');
 
-	output.screenshot = await getScreenshot(config.wikiInfoCardSelector, page);
+	async function getScreenshot(selector) {
+		const element = await page.$(selector);
+		if (!element)
+			return;
+
+		let screenshot = await element.screenshot();
+		await browser.close();
+		return screenshot;
+	}
+
+	output.screenshot = await getScreenshot(config.wikiInfoCardSelector);
 	if (output.screenshot) return output;
 
-	output.screenshot = await getScreenshot(config.wikiItemBoxSelector, page);
+	output.screenshot = await getScreenshot(config.wikiItemBoxSelector);
 	if (output.screenshot) return output;
 
-	output.screenshot = await getScreenshot(config.wikiTableSelector, page);
+	output.screenshot = await getScreenshot(config.wikiTableSelector);
 	if (output.screenshot) return output;
 
-
-	await page.close();
+	await browser.close();
 	return output;
-}
-
-async function getScreenshot(selector, page) {
-	const element = await page.$(selector);
-	if (!element)
-		return;
-
-	let screenshot = await element.screenshot();
-	await page.close();
-	return screenshot;
 }
 
 function convertToUrlString(name) {
