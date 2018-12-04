@@ -32,7 +32,7 @@ let client = new Discord.Client({
 
 client.login(config.token).then(() => {
 	console.log("Logged in");
-});
+}).catch(reason => errorLog.error(reason));
 
 client.on("ready", () => {
 	console.log(`Ready as ${client.user.username}`);
@@ -111,6 +111,13 @@ async function handleItem(itemName, message) {
 			errorLog.error(`"Could not delete message ${messageId}" "${guildName}" "${outputString}"`);
 		});
 		channel.send(outputString, { file: result.screenshot });
+	}).catch(reason => {
+		errorLog.error(`"GetImage Failed" "${guildName}" "${reason}"`);
+		channel.fetchMessage(messageId).then(message => {
+			message.delete();
+		}).catch(() => {
+			errorLog.error(`"Could not delete message ${messageId}" "${guildName}" "${outputString}"`);
+		});
 	})
 }
 
@@ -135,9 +142,9 @@ async function getImage(url, guildName) {
 	//Set a tall page so the image isn't covered by popups
 	await page.setViewport({ 'width': config.width, 'height': config.height });
 
+	//played around with a few different waitUntils.  This one seemed the quickest.
+	//If you don't disable Javascript on the PoE Wiki site, removing this parameter makes it hang
 	try {
-		//played around with a few different waitUntils.  This one seemed the quickest.
-		//If you don't disable Javascript on the PoE Wiki site, removing this parameter makes it hang
 		await page.goto(url, { waitUntil: 'load' });
 	} catch (error) {
 		errorLog.error(`"${error.message}" "${guildName}" "${url}"`);
@@ -145,9 +152,8 @@ async function getImage(url, guildName) {
 	}
 
 	const invalidPage = await page.$(config.wikiInvalidPageSelector);
-	if (invalidPage !== null) {
+	if (invalidPage && invalidPage !== null)
 		return output;
-	}
 
 	output.success = true;
 
@@ -164,29 +170,28 @@ async function getImage(url, guildName) {
 	//remove newlines
 	output.textblock = output.textblock.replace(/[\n\r]/g, '');
 
-	const infoBox = await page.$(config.wikiInfoCardSelector);
-	//if we have a div for the page, screenshot it.
-	if (infoBox) {
-		output.screenshot = await infoBox.screenshot();
-		return output;
-	}
+	output.screenshot = await getScreenshot(config.wikiInfoCardSelector, page);
+	if (output.screenshot) return output;
 
-	const itemBox = await page.$(config.wikiItemBoxSelector);
-	//try and get the alternative box for items and div cards
-	if (itemBox) {
-		output.screenshot = await itemBox.screenshot();
-		return output;
-	}
+	output.screenshot = await getScreenshot(config.wikiItemBoxSelector, page);
+	if (output.screenshot) return output;
 
-	const wikiTable = await page.$(config.wikiTableSelector);
-	//try and get table if its the first child in body
-	if (wikiTable) {
-		output.screenshot = await wikiTable.screenshot();
-		return output;
-	}
+	output.screenshot = await getScreenshot(config.wikiTableSelector, page);
+	if (output.screenshot) return output;
+
 
 	await page.close();
 	return output;
+}
+
+function getScreenshot(selector, page) {
+	const element = await page.$(selector);
+	if (!element)
+		return;
+
+	let screenshot = await element.screenshot();
+	await page.close();
+	return screenshot;
 }
 
 function convertToUrlString(name) {
