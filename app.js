@@ -42,7 +42,6 @@ client.on("message", (message) => {
 	if (message.author.bot) return;
 	let matches = wikiRegex.exec(message.cleanContent);
 	while (matches) {
-		console.log(matches);
 		match = matches[1];
 		if (match == undefined)
 			match = matches[2];
@@ -184,7 +183,7 @@ async function getImage(url, guildName) {
 	return output;
 }
 
-function getScreenshot(selector, page) {
+async function getScreenshot(selector, page) {
 	const element = await page.$(selector);
 	if (!element)
 		return;
