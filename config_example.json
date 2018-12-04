@@ -1,10 +1,13 @@
 {
     "token": "",
-    "wikiURL" : "https://pathofexile.gamepedia.com/",
-    "wikiDiv" : ".infobox-page-container > .item-box",
-    "wikiInvalidPage" : ".noarticletext",
-    "wikiInfoDiv": ".infocard",
-    "width" : 2500,
-    "height" : 2500,
-    "enableJavascript" : false
+    "wikiURL": "https://pathofexile.gamepedia.com/",
+    "wikiParagraphsSelector": "#mw-content-text > .mw-parser-output > p",
+    "wikiInvalidPageSelector": ".noarticletext",
+    "wikiInfoCardSelector": ".infocard",
+    "wikiInfoboxPageContainerSelector": ".infobox-page-container ",
+    "wikiItemBoxSelector": ".infobox-page-container > .item-box",
+    "wikiTableSelector": "#mw-content-text > .mw-parser-output > table.wikitable:nth-child(1)",
+    "width": 2500,
+    "height": 2500,
+    "enableJavascript": false
 }
