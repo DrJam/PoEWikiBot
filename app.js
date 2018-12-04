@@ -42,7 +42,16 @@ client.on("message", (message) => {
 	if (message.author.bot) return;
 	let matches = wikiRegex.exec(message.cleanContent);
 	while (matches) {
-		let target = titleCase(matches[1] || matches[2]);
+		console.log(matches);
+		match = matches[1];
+		if (match == undefined)
+			match = matches[2];
+		let target
+		if (match.startsWith("!"))
+			target = match.substr(1);
+		else
+			target = titleCase(match);
+
 		handleItem(target, message);
 		matches = wikiRegex.exec(message.cleanContent);
 	}
@@ -145,12 +154,12 @@ async function getImage(url, guildName) {
 	//try and get the first paragraph of text
 	var paragraphs = await page.$(config.wikiParagraphsSelector);
 	//can't get these two strings out due to scope, not sure how to
-	if (await paragraphs.$(config.wikiInfoboxPageContainerSelector)) 
+	if (await paragraphs.$(config.wikiInfoboxPageContainerSelector))
 		output.textblock = await page.evaluate(() => document.querySelector('#mw-content-text > .mw-parser-output > p:nth-of-type(2)').innerText);
-		//second paragraph because first contains item info box
+	//second paragraph because first contains item info box
 	else
 		output.textblock = await page.evaluate(() => document.querySelector('#mw-content-text > .mw-parser-output > p:nth-of-type(1)').innerText);
-		//first paragraph
+	//first paragraph
 
 	//remove newlines
 	output.textblock = output.textblock.replace(/[\n\r]/g, '');
@@ -185,7 +194,7 @@ function convertToUrlString(name) {
 }
 
 function titleCase(str) {
-	let excludedWords = ["of", "and", "the", "to", "at", "for"];
+	let excludedWords = ["of", "and", "the", "to", "at", "for", "league"];
 	str = str.toLowerCase();
 	let words = str.split(" ");
 
