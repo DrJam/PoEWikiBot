@@ -15,36 +15,46 @@ let errorLog = SimpleNodeLogger.createSimpleLogger({
 });
 errorLog.setLevel('error');
 
-let client = new Discord.Client({
-	disableEveryone: true,
-	disabledEvents: ["TYPING_START"]
-});
+var client;
+var setup = () => {
+	client = new Discord.Client({
+		disableEveryone: true,
+		disabledEvents: ["TYPING_START"]
+	});
 
-client.login(config.token).then(() => {
-	console.log("Logged in");
-}).catch(reason => errorLog.error(reason));
+	client.login(config.token).then(() => {
+		console.log("Logged in");
+	}).catch(reason => errorLog.error(reason));
 
-client.on("ready", () => {
-	console.log(`Ready as ${client.user.username}`);
-});
+	client.on("ready", () => {
+		console.log(`Ready as ${client.user.username}`);
+	});
 
-client.on("message", (message) => {
-	if (message.author.bot) return;
-	let matches = wikiRegex.exec(message.cleanContent);
-	while (matches) {
-		match = matches[1];
-		if (match == undefined)
-			match = matches[2];
-		let target
-		if (match.startsWith("!"))
-			target = match.substr(1);
-		else
-			target = titleCase(match);
+	client.on("message", (message) => {
+		if (message.author.bot) return;
+		let matches = wikiRegex.exec(message.cleanContent);
+		while (matches) {
+			match = matches[1];
+			if (match == undefined)
+				match = matches[2];
+			let target
+			if (match.startsWith("!"))
+				target = match.substr(1);
+			else
+				target = titleCase(match);
 
-		handleItem(target, message);
-		matches = wikiRegex.exec(message.cleanContent);
-	}
-});
+			handleItem(target, message);
+			matches = wikiRegex.exec(message.cleanContent);
+		}
+	});
+	client.on("error", (error) => {
+		errorLog.error(error);
+		client.destroy();
+		setup();
+	});
+};
+
+setup();
 
 async function handleItem(itemName, message) {
 	var channel = message.channel;
@@ -148,11 +158,11 @@ async function getImage(url, guildName) {
 
 	output.success = true;
 
-    var paragraphs = await page.$(config.wikiParagraphsSelector);
-    if (await paragraphs.$(config.wikiInfoboxPageContainerSelector))
-        output.textblock = await page.evaluate(() => document.querySelector('#mw-content-text > .mw-parser-output > p:nth-of-type(2)').innerText);
-    else
-        output.textblock = await page.evaluate(() => document.querySelector('#mw-content-text > .mw-parser-output > p:nth-of-type(1)').innerText);
+	var paragraphs = await page.$(config.wikiParagraphsSelector);
+	if (await paragraphs.$(config.wikiInfoboxPageContainerSelector))
+		output.textblock = await page.evaluate(() => document.querySelector('#mw-content-text > .mw-parser-output > p:nth-of-type(2)').innerText);
+	else
+		output.textblock = await page.evaluate(() => document.querySelector('#mw-content-text > .mw-parser-output > p:nth-of-type(1)').innerText);
 
 	//remove newlines
 	output.textblock = output.textblock.replace(/[\n\r]/g, '');
