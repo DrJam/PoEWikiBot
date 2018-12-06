@@ -16,10 +16,11 @@ let errorLog = SimpleNodeLogger.createSimpleLogger({
 errorLog.setLevel('error');
 
 var client;
-var setup = () => {
+function setup() {
 	client = new Discord.Client({
 		disableEveryone: true,
-		disabledEvents: ["TYPING_START"]
+		disabledEvents: ["TYPING_START"],
+		autoReconnect: true
 	});
 
 	client.login(config.token).then(() => {
@@ -47,10 +48,9 @@ var setup = () => {
 			matches = wikiRegex.exec(message.cleanContent);
 		}
 	});
+
 	client.on("error", (error) => {
-		errorLog.error(error);
-		client.destroy();
-		setup();
+		errorLog.log(error);
 	});
 };
 
@@ -70,7 +70,7 @@ async function handleItem(itemName, message) {
 		.then(message => messageId = message.id)
 		.catch(error => {
 			errorLog.error(`"${error.message}" "${guildName}" "${itemName}"`);
-		})
+		});
 
 	if (messageId == null) return;
 
@@ -99,7 +99,7 @@ async function handleItem(itemName, message) {
 
 		//if no screenshot, just edit the original message
 		if (!result.screenshot) {
-			editMessage(channel, messageId, outputString)
+			editMessage(channel, messageId, outputString);
 			return;
 		}
 
@@ -117,7 +117,7 @@ async function handleItem(itemName, message) {
 		}).catch(() => {
 			errorLog.error(`"Could not delete message ${messageId}" "${guildName}" "${outputString}"`);
 		});
-	})
+	});
 }
 
 function editMessage(channel, messageId, content) {
@@ -141,7 +141,7 @@ async function getImage(url, guildName) {
 		args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
 	});
 	const page = await browser.newPage();
-	await page.setJavaScriptEnabled(config.enableJavascript) //Disabling Javascript adds 100% increased performance
+	await page.setJavaScriptEnabled(config.enableJavascript); //Disabling Javascript adds 100% increased performance
 	await page.setViewport({ 'width': config.width, 'height': config.height }); //Set a tall page so the image isn't covered by popups
 
 	//played around with a few different waitUntils.  This one seemed the quickest.
