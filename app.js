@@ -173,6 +173,7 @@ async function getImage(url, guildName) {
 			return;
 
 		let screenshot = await element.screenshot();
+		await page.close();
 		await browser.close();
 		return screenshot;
 	}
@@ -186,6 +187,7 @@ async function getImage(url, guildName) {
 	output.screenshot = await getScreenshot(config.wikiTableSelector);
 	if (output.screenshot) return output;
 
+	await page.close();
 	await browser.close();
 	return output;
 }
